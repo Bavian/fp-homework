@@ -181,3 +181,31 @@ tail = `λx.x False`
 
 length = `Y (λxλyλz. nil z y (x (suc y) (tail z))) 0`
 
+## Задание 6
+
+### Условие
+
+Рассматриваем упрощённый eval/apply-интерпретатор:
+
+``` haskell
+data Expr =
+ Integral Integer | -- целые константы
+ Function String | -- идентификаторы примитивных функций
+ Variable String | -- переменная
+ Lambda String Expr | -- лямбда-выражение
+ Application Expr Expr -- применение функции
+```
+
+То есть в нём нет `boolean`-ов и блоков (`let`, `letrec`). Задание - написать функцию, которая по заданному выражению выдаёт список имён всех встроенных (константных) функций, встречающихся в нём.
+
+### Решение
+
+Раскрываем `Expr`:
+
+* `Integral Integer` = `[]`
+* `Function String` = `String`
+* `Variable String` = `[]`
+* `Lambda String Expr` = Раскрытию `Expr`
+* `Application Expr Expr` = Раскрытию `Expr`1 соединеммым с раскрытием `Expr`2
+
+После исключим дупликаты и получим список искомых функций.
