@@ -209,3 +209,108 @@ data Expr =
 * `Application Expr Expr` = Раскрытию `Expr`1 соединеммым с раскрытием `Expr`2
 
 После исключим дупликаты и получим список искомых функций.
+
+## Задание 7
+
+### Условие
+
+Нужно реализовать несложную арифметическую систему для работы с многочленами. Что должно быть в вашей программе:
+* тип данных для одночлена (одночлен представляется коэффициентом из любого множества, которое вам нравится, но является полем, и переменными A, B, C, D, E, F)
+* тип данных для многочлена
+* функции сложения и умножения одночленов
+* функции сложения и умножения многочленов
+* операции упрощения данных типов (одночлен `4 * A^2 * A^4` упрощается до `4 * A^6`. многочлен упрощается путём приведения подобных слагаемых)
+* реализация show для одночленов и многочленов (должно приводится в адекватный читаемый вид типа `4 * A^3 * B^4 - 8 * C^5 * F`)
+* для одночлена или многочлена x должна быть возможность написать в коде программы например `x ^ 3`. для этого необходимо реализовать класс `Num`
+
+### Решение
+
+Класс для хранения названия переменной и степени, в которою возведена эта переменная.
+
+``` haskell
+data VarPow = VarPow {
+  getVariable :: Char,
+  getPower :: Integer
+}
+```
+
+Класс для одночлена. Хранит константу и список пар (Переменная, степень)
+
+``` haskell
+data Monomial = Monomial {
+  constant :: Integer,
+  variables :: [VarPow]
+}
+```
+
+Функция упрощения одночлена. Складывает все степени одинаковых перменных и кладет в новый список
+
+``` haskell
+simplify :: Monomial -> Monomial
+simplify monomial = Monomial (constant monomial) (simplify2 [] (variables monomial)) where
+  simplify2 :: [VarPow] -> [VarPow] -> [VarPow]
+  simplify2 stack [] = stack
+  simplify2 stack (current:list) = simplify2 (if contains (getVariable current) stack then stack else stack ++ [combine (getVariable current) (getPower current) list]) list
+```
+Вспомогательная функция, проверяет содержится ли пара с искомой переменной в списке пар (Переменная, степень)
+
+``` haskell
+contains :: Char -> [VarPow] -> Bool
+contains variable [] = False
+contains variable (current:list) = if variable == (getVariable current) then True else contains variable list
+```
+
+Вспомогательная функция, собирает складывает все степени из списка пар с одинаковыми переменными и возвращает пару (переменная, сумма степеней)
+
+``` haskell
+combine :: Char -> Integer -> [VarPow] -> VarPow
+combine variable power [] = VarPow variable power
+combine variable power (current:list) = combine variable (power + if variable == (getVariable current) then (getPower current) else 0) list
+```
+
+Вспомогательная функция, проверяет одночлены на равнество, одночлены должны быть заранее упрощены
+
+``` haskell
+simplifiedEquals :: Monomial -> Monomial -> Bool
+simplifiedEquals (Monomial c1 vp1) (Monomial c2 vp2) = (c1 == c2) && (varPowListEquals vp1 vp2)
+```
+
+Вспомогательная функция. Проверяет списки пар (Переменная, степень) на то, что они содержат одни и те же пары.
+
+``` haskell
+varPowListEquals :: [VarPow] -> [VarPow] -> Bool
+varPowListEquals vp1 vp2 = (all (\vp -> elem vp vp2) vp1) && (all (\vp -> elem vp vp1) vp2)
+```
+
+Функция для суммы двух одночленов. Сумма одночленов может быть многочленом, поэтому возвращается многочлен.
+
+``` haskell
+sumMonomial :: Monomial -> Monomial -> Polynomial
+sumMonomial m1 m2 = (Polynomial [m1]) + (Polynomial [m2])
+```
+
+Функция для упрощения многочлена. Идея алгоритма такая же, как в упрощении одночлена
+
+``` haskell
+simplifyPolynomial :: Polynomial -> Polynomial
+simplifyPolynomial (Polynomial p) = simplify2 [] (map simplify p)
+  where simplify2 :: [Monomial] -> [Monomial] -> Polynomial
+        simplify2 stack [] = Polynomial stack
+        simplify2 stack (current:list) = simplify2 (if containsMonomial current stack then stack else stack ++ [combineMonomials current list]) list
+```
+
+Вспомогательная функция. Проверяет, содержится ли одночлен в списке одночленов, игнорируя множитель(Проверка на подобие).
+
+``` haskell
+containsMonomial :: Monomial -> [Monomial] -> Bool
+containsMonomial m [] = False
+containsMonomial m (current:list) = if varPowListEquals (variables m) (variables current) then True else containsMonomial m list
+```
+
+Вспомогательная функция. Складывает подобные одночлены внутри списка одночленов.
+
+``` haskell
+combineMonomials :: Monomial -> [Monomial] -> Monomial
+combineMonomials m [] = m
+combineMonomials m (current:list) = combineMonomials (Monomial (if varPowListEquals (variables m) (variables current) then (constant m) + (constant current) else (constant m)) (variables m)) list
+```
